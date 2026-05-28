@@ -9,7 +9,7 @@
 
 // DEFINICIONES 
 
-#define Vout_LN35       34 // Salida del sensor de temperatura LN35
+#define Vout_LM35       34 // Salida del sensor de temperatura LM35
 #define Vout_PE         35 // Salida del piezoeléctrico
 
 // VARIABLES
@@ -69,13 +69,13 @@ void init_adc() {
     );
 }
 
-void read_ln35() {
+void read_lm35() {
     int raw_value = 0;
     adc_oneshot_read(adc1,ADC_CHANNEL_6, &raw_value); // Leer valor crudo del ADC
     float voltage = raw_value * (3.3 / 4095.0); // Convertir a voltaje
-    float temperature = voltage * 100.0; // Convertir a temperatura (LN35 tiene una sensibilidad de 10mV/°C)
-    ESP_LOGI("LN35","Temperatura: %.2f °C", temperature);
-    ESP_LOGI("LN35","Valor crudo: %d, Voltaje: %.2f V", raw_value, voltage);
+    float temperature = voltage * 100.0; // Convertir a temperatura (LM35 tiene una sensibilidad de 10mV/°C)
+    ESP_LOGI("LM35","Temperatura: %.2f °C", temperature);
+    ESP_LOGI("LM35","Valor crudo: %d, Voltaje: %.2f V", raw_value, voltage);
 }
 
 // MAIN
@@ -84,12 +84,12 @@ void app_main(void)
     ESP_LOGI("MAIN","Hola! Empezamos.");
     // gps_starting(); // Inicializa el GPS
     init_i2c(); // inicializa el bus I2C para el MPU6050 y el MLX90614
-    init_adc(); // Inicializa el ADC para el LN35
+    init_adc(); // Inicializa el ADC para el LM35
     while (1) {
         //read_mpu6050();
         read_mlx90614();
         ESP_LOGW("-","--------------------------------------------------------------");
-        read_ln35();
+        read_lm35();
         vTaskDelay(pdMS_TO_TICKS(500));    
     }
 }
