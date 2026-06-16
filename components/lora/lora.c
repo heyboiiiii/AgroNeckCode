@@ -17,7 +17,6 @@
 
 static const char *TAG = "LoRa";
 
-
 spi_device_handle_t lora_spi;
 
 void lora_spi_init() {
@@ -53,7 +52,6 @@ void lora_reset() {
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-//this function won't work if you don't connect the MISO PIN
 uint8_t lora_read_register(uint8_t reg) {
     uint8_t tx_data[2] = { reg & 0x7F, 0x00 };
     uint8_t rx_data[2] = {0};
@@ -114,11 +112,9 @@ void lora_send_packet(const char *data) {
 
     // Clear IRQ flags after transmission
     lora_write_register(0x12, 0xFF);
-
 }
 
 void lora_init(){
-
     // Configurar pines CS y RST como salida
     gpio_reset_pin(LORA_RESET);
     gpio_set_direction(LORA_RESET, GPIO_MODE_OUTPUT);
