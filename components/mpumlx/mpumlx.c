@@ -15,7 +15,7 @@ void init_i2c() {
         .sda_io_num = MLX_MPU6050_SDA,    // GPIO21 para ESP32 estándar
         .scl_io_num = MLX_MPU6050_SCL,    // GPIO22 para ESP32 estándar
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,    
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     };
     conf.master.clk_speed = 100000; // 100 kHz (inicial) 
 
@@ -111,11 +111,11 @@ esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
     uint8_t buffer[3];
     esp_err_t ret = mlx90614_read_bytes(i2c_num, 0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error leyendo temperatura: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Error leyendo temperatura de la superficie: %s", esp_err_to_name(ret));
         return ret;
     }
-    uint16_t temp_raw = (buffer[1] << 8) | buffer[0];
-    data->object_temp = (temp_raw * 0.02) - 273.15; // Convertir a grados Celsius
+    uint16_t temp_sup_raw = (buffer[1] << 8) | buffer[0];
+    data->object_temp = (temp_sup_raw * 0.02) - 273.15; // Convertir a grados Celsius
 
     esp_err_t ret2 = mlx90614_read_bytes(i2c_num, 0x06, buffer, 3); // Leer temperatura ambiente
     if (ret2 != ESP_OK) {

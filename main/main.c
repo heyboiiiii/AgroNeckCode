@@ -11,6 +11,7 @@
 
 #define Vout_LM35       34 // Salida del sensor de temperatura LM35
 #define Vout_PE         35 // Salida del piezoeléctrico
+#define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
 
 // VARIABLES
 // GPS
