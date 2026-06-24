@@ -115,7 +115,7 @@ esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
         return ret;
     }
     uint16_t temp_sup_raw = (buffer[1] << 8) | buffer[0];
-    data->object_temp = (temp_sup_raw * 0.02) - 273.15; // Convertir a grados Celsius
+    data->mlx_object_temp = (temp_sup_raw * 0.02) - 273.15; // Convertir a grados Celsius
 
     esp_err_t ret2 = mlx90614_read_bytes(i2c_num, 0x06, buffer, 3); // Leer temperatura ambiente
     if (ret2 != ESP_OK) {
@@ -123,6 +123,6 @@ esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
         return ret2;
     }
     uint16_t temp_amb_raw = (buffer[1] << 8) | buffer[0];
-    data->ambient_temp = (temp_amb_raw * 0.02) - 273.15; // Convertir a grados Celsius
+    data->mlx_amb_temp = (temp_amb_raw * 0.02) - 273.15; // Convertir a grados Celsius
     return ESP_OK;
 }

@@ -11,7 +11,7 @@
 
 // Estructura para almacenar datos del LM35
 typedef struct {
-    float ambient_temp;  // Temperatura ambiente en °C
+    float lm_amb_temp;  // Temperatura ambiente en °C
 } lm35_data_t;
 
 // Funciones

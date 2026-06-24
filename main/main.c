@@ -6,6 +6,7 @@
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS Neo-6MV2
 #include "mpumlx.h"    // Librería para el sensor de movimiento MPU6050
+#include "lm35.h"      // Librería para el sensor de temperatura LM35
 
 // DEFINICIONES 
 
@@ -17,10 +18,23 @@
 // GPS
 double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
 
-// ADC
-adc_oneshot_unit_handle_t adc1;
+// TEMP
+float lm_amb_temp;  // Temperatura ambiente del LM35
+mlx90614_data_t mlx_data;
 
 // FUNCIONES
+void read_lm35() {
+    ESP_LOGI("read_lm35","Intentando leer LM35...");
+    lm35_data_t data;
+    esp_err_t ret = lm35_read(&data);
+    if (ret == ESP_OK) {
+        lm_amb_temp = data.lm_amb_temp;
+        ESP_LOGI("LM35","Temperatura: %.2f °C", lm_amb_temp);
+    } else {
+        ESP_LOGE("LM35","Error leyendo LM35: %s", esp_err_to_name(ret));
+    }
+}
+
 void read_gps() {
     ESP_LOGI("read_gps","Intentando leer GPS...");
     raw_nmea(&latitude,&longitude,&lat_hemisphere,&lon_hemisphere,&velocidad);
@@ -42,55 +56,34 @@ void read_mpu6050() {
 
 void read_mlx90614() {
     ESP_LOGI("read_mlx90614","Intentando leer MLX90614...");
-    mlx90614_data_t data;
-    esp_err_t ret = mlx90614_read(&data, I2C_NUM_0);
+    esp_err_t ret = mlx90614_read(&mlx_data, I2C_NUM_0);
     if (ret == ESP_OK) {
-        ESP_LOGI("MLX90614","Temperatura ambiente: %.2f °C, Temperatura objeto: %.2f °C", data.ambient_temp, data.object_temp);
+        ESP_LOGI("MLX90614","Temperatura objeto: %.2f °C", mlx_data.mlx_object_temp);
     } else {
         ESP_LOGE("MLX90614","Error leyendo datos: %s", esp_err_to_name(ret));
     }
 }
 
-void init_adc() {
-    adc_oneshot_unit_init_cfg_t init_config = {
-        .unit_id = ADC_UNIT_1,
-    };
-    
-    adc_oneshot_new_unit(&init_config, &adc1);
-
-    adc_oneshot_chan_cfg_t config = {
-        .bitwidth = ADC_BITWIDTH_12,
-        .atten = ADC_ATTEN_DB_12
-    };
-
-    adc_oneshot_config_channel(
-        adc1,
-        ADC_CHANNEL_6,
-        &config
-    );
-}
-
-void read_lm35() {
-    int raw_value = 0;
-    adc_oneshot_read(adc1,ADC_CHANNEL_6, &raw_value); // Leer valor crudo del ADC
-    float voltage = raw_value * (3.3 / 4095.0); // Convertir a voltaje
-    float temperature = voltage * 100.0; // Convertir a temperatura (LM35 tiene una sensibilidad de 10mV/°C)
-    ESP_LOGI("LM35","Temperatura: %.2f °C", temperature);
-    ESP_LOGI("LM35","Valor crudo: %d, Voltaje: %.2f V", raw_value, voltage);
+void internal_temp() {
+    ESP_LOGI("internal_temp", "Intentando calcular temperatura interna...");
+    // Calcular la temperatura interna de la vaca con la fórmula: T_interna = T_ambiente + (T_objeto - T_ambiente) * H_COEFICIENTE
+    float temp_interna = lm_amb_temp + (mlx_data.mlx_object_temp - lm_amb_temp) * H_COEFICIENTE;
+    ESP_LOGI("Temperatura interna","Temperatura interna estimada: %.2f °C", temp_interna);
 }
 
 // MAIN
 void app_main(void)
 {
-    ESP_LOGI("MAIN","Hola! Empezamos.");
+    ESP_LOGI("MAIN","Comenzando los procesos principales");
     // gps_starting(); // Inicializa el GPS
     init_i2c(); // inicializa el bus I2C para el MPU6050 y el MLX90614
-    init_adc(); // Inicializa el ADC para el LM35
+    lm35_init(); // Inicializa el ADC y el canal para el LM35
     while (1) {
-        //read_mpu6050();
+        read_gps();
+        read_mpu6050();
         read_mlx90614();
-        ESP_LOGW("-","--------------------------------------------------------------");
         read_lm35();
+        internal_temp();
         vTaskDelay(pdMS_TO_TICKS(500));    
     }
 }
