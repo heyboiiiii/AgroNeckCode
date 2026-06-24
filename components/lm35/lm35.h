@@ -1,6 +1,3 @@
-#ifndef LM35_H
-#define LM35_H
-
 #include "esp_err.h"
 #include "esp_adc/adc_oneshot.h"
 
@@ -18,5 +15,3 @@ typedef struct {
 esp_err_t lm35_init(void);
 esp_err_t lm35_read(lm35_data_t *data);
 void lm35_deinit(void);
-
-#endif // LM35_H
