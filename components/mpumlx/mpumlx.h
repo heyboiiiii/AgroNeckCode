@@ -24,8 +24,8 @@ typedef struct {
 }mpu6050_data_t;
 
 typedef struct {
-    float ambient_temp;
-    float object_temp;
+    float mlx_amb_temp;
+    float mlx_object_temp;
 } mlx90614_data_t;
 
 void init_i2c();

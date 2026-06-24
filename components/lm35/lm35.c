@@ -55,10 +55,10 @@ esp_err_t lm35_read(lm35_data_t *data) {
     
     // LM35: 10mV por grado Celsius
     // temperatura (°C) = voltage_mv (mV) / 10
-    data->ambient_temp = voltage_mv / 10.0f;
+    data->lm_amb_temp = voltage_mv / 10.0f;
     
     ESP_LOGI(TAG, "ADC: %d | Voltaje: %.2f mV | Temperatura: %.2f °C", 
-             adc_raw, voltage_mv, data->ambient_temp);
+             adc_raw, voltage_mv, data->lm_amb_temp);
     
     return ESP_OK;
 }
@@ -67,6 +67,6 @@ void lm35_deinit(void) {
     if (adc_handle != NULL) {
         adc_oneshot_del_unit(adc_handle);
         adc_handle = NULL;
-        ESP_LOGI(TAG, "LM35 desininicializado");
+        ESP_LOGI(TAG, "LM35 desinicializado");
     }
 }
