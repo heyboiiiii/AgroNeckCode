@@ -10,7 +10,6 @@
 #define BUFFER (1024)
 char buf[BUFFER];
 
-
 float parse_gprmc_speed(const char *nmea_sentence) {
     if (strstr(nmea_sentence, "$GPRMC") == NULL) return -1;
 
@@ -34,10 +33,6 @@ float parse_gprmc_speed(const char *nmea_sentence) {
     // Convert knots to km/h
     return speed_knots * 1.852;
 }
-
-
-
-
 
 static const char *TAG = "GPS";
 

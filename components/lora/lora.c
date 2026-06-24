@@ -42,8 +42,6 @@ void lora_spi_init() {
     ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &lora_spi));
 }
 
-
-
 // Función para reiniciar el módulo
 void lora_reset() {
     gpio_set_level(LORA_RESET, 0);
