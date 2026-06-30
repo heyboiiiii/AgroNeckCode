@@ -19,7 +19,7 @@ static const char *TAG = "LoRa";
 
 spi_device_handle_t lora_spi;
 
-void lora_spi_init() {
+static void lora_spi_init() {
     // configuracion básica
     spi_bus_config_t buscfg = {
         .mosi_io_num = LORA_MOSI,  // GPIO 23
@@ -43,14 +43,14 @@ void lora_spi_init() {
 }
 
 // Función para reiniciar el módulo
-void lora_reset() {
+static void lora_reset(void) {
     gpio_set_level(LORA_RESET, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
     gpio_set_level(LORA_RESET, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-uint8_t lora_read_register(uint8_t reg) {
+static uint8_t lora_read_register(uint8_t reg) {
     uint8_t tx_data[2] = { reg & 0x7F, 0x00 };
     uint8_t rx_data[2] = {0};
     spi_transaction_t t = {
@@ -64,7 +64,7 @@ uint8_t lora_read_register(uint8_t reg) {
 }
 
 // Funcion de escritura registros fifo LoRA( MSB + adress // payload )
-void lora_write_register(uint8_t address, uint8_t payload){
+static void lora_write_register(uint8_t address, uint8_t payload){
     uint8_t tx_data[2] = { address | 0x80, payload }; 
     spi_transaction_t t = {
         .length = 2 * 8,
@@ -77,7 +77,7 @@ void lora_write_register(uint8_t address, uint8_t payload){
 }
 
 // Función para enviar una cadena
-void lora_send_packetb(const uint8_t *data, size_t length) {
+static void lora_send_packetb(const uint8_t *data, size_t length) {
     // defino largo del payload
     lora_write_register(0x22, length);
 
@@ -141,7 +141,7 @@ void transmitir_datos(void){
    // lora_send_packetb((uint8_t*)&paquete,sizeof(payload_t)); // envio el paquete, que con este formato son 13 bytes
 }
 
-void lora_init(){
+void lora_init(void){
     // Configurar pines CS y RST como salida
     gpio_reset_pin(LORA_RESET);
     gpio_set_direction(LORA_RESET, GPIO_MODE_OUTPUT);
