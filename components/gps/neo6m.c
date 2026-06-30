@@ -34,8 +34,6 @@ float parse_gprmc_speed(const char *nmea_sentence) {
     return speed_knots * 1.852;
 }
 
-static const char *TAG = "GPS";
-
 double convert_to_decimal_degrees(double raw_coordinate) {
     // Extract the integer part as degrees.
     // For 3445.30788, floor(3445.30788 / 100) gives 34.
