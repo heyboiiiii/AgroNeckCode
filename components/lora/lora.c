@@ -33,7 +33,7 @@ void lora_spi_init() {
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = 10*1000*1000,
+        .clock_speed_hz = 5*1000*1000,
         .mode = 0,
         .spics_io_num = LORA_CS,
         .queue_size = 7,
@@ -77,45 +77,75 @@ void lora_write_register(uint8_t address, uint8_t payload){
 }
 
 // Función para enviar una cadena
-void lora_send_packet(const char *data) {
-    int length = strlen(data);
-    // Set payload length --> (register 0x22)
+void lora_send_packetb(const uint8_t *data, size_t length) {
+    // defino largo del payload
     lora_write_register(0x22, length);
 
-    // FIFO TX base address
+    // configuro direcciones del FIFO
     lora_write_register(0x0E, 0x00);
-    lora_write_register(0x0D, 0x00); // FIFO addr ptr
+    lora_write_register(0x0D, 0x00);
 
-    // Cargar datos en FIFO
-    for (int i = 0; i < length; i++) {
-        lora_write_register(0x00, data[i]);
+    // burst write
+    uint8_t *spi_buf = heap_caps_malloc(length+1,MALLOC_CAP_DMA);
+    if (spi_buf == NULL) {
+        ESP_LOGE(TAG,"Error: No se pudo asignar memoria buffer SPI");
+        return;
     }
-    //limpiar flags IRQ antes de tx
-    lora_write_register(0x12,0xFF);
 
-    // Cambiar a modo TX
-    lora_write_register(0x01, 0x83); // RegOpMode = TX
+    spi_buf[0] = 0x00 | 0x80; 
+    memcpy(&spi_buf[1],data,length); // copio estructura al buffer
+
+    spi_transaction_t t = {
+        .length = (length+1)*8, // largo en bits
+        .tx_buffer = spi_buf,
+        .rx_buffer = NULL
+    };
+
+    spi_device_polling_transmit(lora_spi, &t); // transito sin soltar CS
+    free(spi_buf); // libero memoria
+
+    lora_write_register(0x12,0xFF); // limpio flags irq antes de transmitir
+    lora_write_register(0x01,0x83); // regop: lora+tx
 
     uint8_t irq_flags;
-    int timeout = 1000; // simple timeout to avoid infinite loop
-    
+    int timeout = 1000;
     while (timeout--) {
         irq_flags = lora_read_register(0x12);
-        if (irq_flags & 0x08) { // TxDone
-            ESP_LOGI(TAG, "Mensaje cargado en FIFO: %s", data);
+        if (irq_flags & 0x08) { // detecta envio
+            ESP_LOGI(TAG,"Paquete binario enviado (%d bytes)",length);
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(1));
     }
+    lora_write_register(0x12,0xFF); // limpio flags irq despues de transmitir
 
-    // Clear IRQ flags after transmission
-    lora_write_register(0x12, 0xFF);
+    lora_write_register(0x01, 0x80); // regop: sleep
+}
+
+void transmitir_datos(void){
+    payload_t paquete; // creo el paquete
+    /*
+    // asigno datos, ej:
+    uint16_t id_local = 122;
+    uint8_t  pulsaciones   = 82;
+    float    temp_sensor   = 30.85;
+    double   gps_latitud   = -42.0690;
+    double   gps_longitud  = -67.6767; // datos simulados
+    
+    // mapeo y empaqueto
+    paquete.id_collar = id_local;
+    paquete.bpm = pulsaciones;
+    paquete.latitud = (uint32_t)(gps_latitud*10000) // un 0 por cada decimal, lo tengo q pasar a numero entero > ej -420690
+    // *etc
+    */
+   // lora_send_packetb((uint8_t*)&paquete,sizeof(payload_t)); // envio el paquete, que con este formato son 13 bytes
 }
 
 void lora_init(){
     // Configurar pines CS y RST como salida
     gpio_reset_pin(LORA_RESET);
     gpio_set_direction(LORA_RESET, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(LORA_CS);
     lora_reset();
 
     // inicializacion de SPI_LoRa
