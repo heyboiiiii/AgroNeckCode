@@ -19,5 +19,4 @@ typedef struct {
 
 // Funciones
 void lora_init(void);
-void lora_send_packetb(const uint8_t *data, size_t length); // lora_send_packetb(inary)
 void transmitir_datos(void);
