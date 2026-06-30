@@ -14,4 +14,4 @@ void lora_spi_init();
 void lora_reset();
 uint8_t lora_read_register(uint8_t reg);
 void lora_write_register(uint8_t adress, uint8_t payload);
-void lora_send_packet(const char *data);
+void lora_send_packetb(const char *data); // lora_send_packetb(inary)
