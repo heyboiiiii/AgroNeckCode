@@ -10,7 +10,7 @@
 #define BUFFER (1024)
 char buf[BUFFER];
 
-float parse_gprmc_speed(const char *nmea_sentence) {
+static float parse_gprmc_speed(const char *nmea_sentence) {
     if (strstr(nmea_sentence, "$GPRMC") == NULL) return -1;
 
     char *tokens[12] = {0};
@@ -34,7 +34,7 @@ float parse_gprmc_speed(const char *nmea_sentence) {
     return speed_knots * 1.852;
 }
 
-double convert_to_decimal_degrees(double raw_coordinate) {
+static double convert_to_decimal_degrees(double raw_coordinate) {
     // Extract the integer part as degrees.
     // For 3445.30788, floor(3445.30788 / 100) gives 34.
     double degrees = floor(raw_coordinate / 100.0);
