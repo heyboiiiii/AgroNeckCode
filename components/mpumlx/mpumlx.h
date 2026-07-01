@@ -24,7 +24,7 @@ typedef struct {
     int16_t gx;
     int16_t gy;
     int16_t gz;
-}mpu6050_data_t;
+} mpu6050_data_t;
 
 typedef struct {
     float mlx_amb_temp;
@@ -33,6 +33,6 @@ typedef struct {
 
 // Funciones
 void init_i2c();
-esp_err_t mpu6050_init(i2c_port_t i2c_num);
+esp_err_t mpu6050_init(i2c_port_t i2c_num); // una vez funcional con los dos componentes, esto probablemente debería ir adentro del init_i2c()
 esp_err_t mpu6050_read(mpu6050_data_t *data, i2c_port_t i2c_num);
 esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num);
