@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "esp_log.h"    
 #include "esp_adc/adc_oneshot.h" // Librería para el ADC
+#include "driver/gpio.h"
 
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS Neo-6MV2
@@ -21,9 +22,18 @@ double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; flo
 float lm_amb_temp;  // Temperatura ambiente del LM35
 mlx90614_data_t mlx_data; // Temperatura piel del animal
 
-//GPIOS de MOSFETS(Control Placa Solaria):
+// GPIOS de MOSFETS (Control Placa Solaria)
+// C1+C4 o C2+C3
+#define MOSFET1 25 // GPIO del MOSFET CONTROL3
+#define MOSFET2 26 // GPIO del MOSFET CONTROL4
+#define MOSFET3 32 // GPIO del MOSFET CONTROL1
+#define MOSFET4 33 // GPIO del MOSFET CONTROL2
 
-#define MOSFET1 25 // GPIO del MOSFET 1
+#define GPIO_MOSFET_MASK ((1ULL<<MOSFET1) | (1ULL<<MOSFET2) | (1ULL<<MOSFET3) | (1ULL<<MOSFET4)) // creo una mascara para manejar los 4 pines (no hay ganas de hacer 1x1)
+
+bool estado_mosfet = true; // variable para seguir el estado de los mosfets
+// true = estado inicial, 2+3
+// false = estado secundario, 1+4
 
 // FUNCIONES
 void read_lm35() {
@@ -74,7 +84,37 @@ void internal_temp() {
 }
 
 // Logica de intercambio de baterias que alimentan al sistema y carga de las mismas.
+// inicializo salidas p/ mosfets
+void init_mosfet_gpios() {
+    gpio_config_t io_config = {
+        .intr_type = GPIO_INTR_DISABLE,           // Deshabilitar interrupciones
+        .mode = GPIO_MODE_OUTPUT,                 // Configurar como salida
+        .pin_bit_mask = GPIO_MOSFET_MASK,         // Uso la mascara
+    };
+    gpio_config(&io_config);
 
+    // estado activo inicial, 2+3
+    gpio_set_level(MOSFET2,1);
+    gpio_set_level(MOSFET3,1);
+}
+
+// funcion de switch como buen cavernícola
+void switch_mosfet() {
+    estado_mosfet = !estado_mosfet; // invierto estado de los mosfets
+    if (estado_mosfet) { // estado inicial
+        gpio_set_level(MOSFET1,0); // desactivo 1+4
+        gpio_set_level(MOSFET4,0);
+        // posible delay
+        gpio_set_level(MOSFET2,1); // prendo 2+3
+        gpio_set_level(MOSFET3,1);
+    } else { // estado secundario
+        gpio_set_level(MOSFET2,0); // desactivo 2+3
+        gpio_set_level(MOSFET3,0);
+        // posible delay
+        gpio_set_level(MOSFET1,1); // prendo 1+4
+        gpio_set_level(MOSFET4,1);
+    }
+}
 
 // MAIN
 void app_main(void)
