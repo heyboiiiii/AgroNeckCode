@@ -122,23 +122,27 @@ static void lora_send_packetb(const uint8_t *data, size_t length) {
     lora_write_register(0x01, 0x80); // regop: sleep
 }
 
-void transmitir_datos(void){
-    payload_t paquete; // creo el paquete
+void transmitir_datos(payload_t *paquete){
+    //payload_t paquete; // creo el paquete
+    
     /*
-    // asigno datos, ej:
+        // asigno datos, ej:
     uint16_t id_local = 122;
     uint8_t  pulsaciones   = 82;
     float    temp_sensor   = 30.85;
     double   gps_latitud   = -42.0690;
     double   gps_longitud  = -67.6767; // datos simulados
+    */
     
-    // mapeo y empaqueto
+    /*
+        // mapeo y empaqueto
     paquete.id_collar = id_local;
     paquete.bpm = pulsaciones;
     paquete.latitud = (uint32_t)(gps_latitud*10000) // un 0 por cada decimal, lo tengo q pasar a numero entero > ej -420690
     // *etc
     */
-   // lora_send_packetb((uint8_t*)&paquete,sizeof(payload_t)); // envio el paquete, que con este formato son 13 bytes
+    
+    lora_send_packetb((uint8_t*)&paquete,sizeof(payload_t)); // envio el paquete, que con este formato son 13 bytes
 }
 
 void lora_init(void){

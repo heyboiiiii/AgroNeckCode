@@ -19,4 +19,4 @@ typedef struct {
 
 // Funciones
 void lora_init(void);
-void transmitir_datos(void);
+void transmitir_datos(payload_t *paquete);
