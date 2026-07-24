@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "esp_log.h"    
 #include "esp_adc/adc_oneshot.h" // Librería para el ADC
+#include "driver/gpio.h"
 
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS Neo-6MV2
@@ -36,9 +37,9 @@ double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; flo
 float lm_amb_temp;  // Temperatura ambiente del LM35
 mlx90614_data_t mlx_data; // Temperatura piel del animal
 
+//GPIOS de MOSFETS(Control Placa Solaria):
 
-
-
+#define MOSFET1 25 // GPIO del MOSFET 1
 
 // Funciones de lectura de sensores
 void read_lm35() {
@@ -89,13 +90,10 @@ void internal_temp() {
     ESP_LOGI("Temp.Calc","Temperatura interna estimada: %.2f °C", temp_interna); 
 }
 
+// Logica de intercambio de baterias que alimentan al sistema y carga de las mismas.
 
 
-
-
-
-
-
+// MAIN
 void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
