@@ -8,24 +8,39 @@
 #include "mpumlx.h"    // Librería para el sensor de movimiento MPU6050
 #include "lm35.h"      // Librería para el sensor de temperatura LM35
 
-// DEFINICIONES 
-
 #define Vout_LM35       34 // GPIO de Salida del sensor de temperatura LM35
 #define Vout_PE         35 // GPIO de Salida del piezoeléctrico
 #define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
 
-// VARIABLES GPS
-double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
 
-// TEMP
-float lm_amb_temp;  // Temperatura ambiente del LM35
-mlx90614_data_t mlx_data; // Temperatura piel del animal
+/* ********************PENDIENTE SANTI************** 
+    DEFINIR LAS FUNCIONES de LOGICA DE INTERCAMBIO DE BATERIAS 
+                            Y
+                GPIOS de MOSFETS(Control Placa Solaria)
+*/
+
 
 //GPIOS de MOSFETS(Control Placa Solaria):
 
 #define MOSFET1 25 // GPIO del MOSFET 1
+#define MOSFET2  // GPIO del MOSFET 2
+#define MOSFET3  // GPIO del MOSFET 3
+#define MOSFET4  // GPIO del MOSFET 4
 
-// FUNCIONES
+
+
+// GpsVars
+double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
+
+// TempVars
+float lm_amb_temp;  // Temperatura ambiente del LM35
+mlx90614_data_t mlx_data; // Temperatura piel del animal
+
+
+
+
+
+// Funciones de lectura de sensores
 void read_lm35() {
     ESP_LOGI("read_lm35","Intentando leer LM35...");
     lm35_data_t data;
@@ -66,6 +81,7 @@ void read_mlx90614() {
     }
     }
 
+// Función para calcular la temperatura interna de la vaca
 void internal_temp() {
     ESP_LOGI("Temp.Calc","Calculando temperatura interna...");
     // Calcular la temperatura interna de la vaca con la fórmula: T_interna = T_ambiente + (T_objeto - T_ambiente) * H_COEFICIENTE
@@ -73,10 +89,13 @@ void internal_temp() {
     ESP_LOGI("Temp.Calc","Temperatura interna estimada: %.2f °C", temp_interna); 
 }
 
-// Logica de intercambio de baterias que alimentan al sistema y carga de las mismas.
 
 
-// MAIN
+
+
+
+
+
 void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
