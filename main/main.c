@@ -1,8 +1,11 @@
 // DEPENDENCIAS
 #include <stdio.h>
 #include "esp_log.h"    
+#include "esp_sleep.h"
 #include "esp_adc/adc_oneshot.h" // Librería para el ADC
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS Neo-6MV2
@@ -13,6 +16,8 @@
 #define Vout_PE         35 // GPIO de Salida del piezoeléctrico
 #define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
 
+#define WAKEUP_GPIO     GPIO_NUM_0 // GPIO que despierta del modo sleep 
+#define WAKEUP_LEVEL    1 // Activarse con nivel alto/flanco ascendente
 
 // GPIOS de MOSFETS (Control Placa Solaria)
 // C1+C4 o C2+C3
@@ -37,16 +42,16 @@ mlx90614_data_t mlx_data; // Temperatura piel del animal
 
 // inicializo salidas p/ mosfets
 void init_mosfet_gpios() {
+    gpio_hold_dis(MOSFET1);
+    gpio_hold_dis(MOSFET2);
+    gpio_hold_dis(MOSFET3);
+    gpio_hold_dis(MOSFET4);
     gpio_config_t io_config = {
         .intr_type = GPIO_INTR_DISABLE,           // Deshabilitar interrupciones
         .mode = GPIO_MODE_OUTPUT,                 // Configurar como salida
         .pin_bit_mask = GPIO_MOSFET_MASK,         // Uso la mascara
     };
     gpio_config(&io_config);
-
-    // estado activo inicial, 2+3
-    gpio_set_level(MOSFET2,1);
-    gpio_set_level(MOSFET3,1);
 }
 
 void switch_mosfet() {
@@ -54,13 +59,11 @@ void switch_mosfet() {
     if (estado_mosfet) { // estado inicial
         gpio_set_level(MOSFET1,0); // desactivo 1+4
         gpio_set_level(MOSFET4,0);
-        // posible delay
         gpio_set_level(MOSFET2,1); // prendo 2+3
         gpio_set_level(MOSFET3,1);
     } else { // estado secundario
         gpio_set_level(MOSFET2,0); // desactivo 2+3
         gpio_set_level(MOSFET3,0);
-        // posible delay
         gpio_set_level(MOSFET1,1); // prendo 1+4
         gpio_set_level(MOSFET4,1);
     }
@@ -116,13 +119,66 @@ void internal_temp() {
 }
 
 // Logica de intercambio de baterias que alimentan al sistema y carga de las mismas.
+// buena logica
 
+// Función despertar
+void sensar_enviar(void *pvParameters){ // funcionar para sensar y enviar todos los datos al despertar del deep sleep
+    // inicializar buses y perifericos
+    // init_i2c(); // etc
+
+    // lectura de sensores
+    // read_gps(); // etc
+
+    // payload_t paquete; // creo un paquete
+    // paquete.latitud = (int32_t)(gps_latitud * 10000.0); // cargo los datos, en este caso solo estoy cargando datos gps como ejemplo
+    // paquete.longitud = (int32_t)(gps_longitud * 10000.0);
+
+    // transmitir_datos(&paquete);
+
+    // fin de secuencia (LOGI si quiero), vuelvo a deep sleep
+
+    // congelo los mosfets antes de irme a dormir
+    gpio_hold_en(MOSFET1);
+    gpio_hold_en(MOSFET2);
+    gpio_hold_en(MOSFET3);
+    gpio_hold_en(MOSFET4);
+
+    // creo una interrupcion de despertado
+    esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO,WAKEUP_LEVEL);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+    // entro/vuelvo a deep sleep
+    esp_deep_sleep_start();
+
+    vTaskDelete(NULL);
+};
+
+
+/* PARA HACER // PARA HACER // PARA HACER // PARA HACER // PARA HACER // PARA HACER // PARA HACER
+==================================================================================================
+problemon: estado inicial de los mosfets, hago para switchear y guardar el estado en que esta cada mosfet con un reinicio?
+posibles opciones:
+Usar RTC_DATA_ATTR para 'estado_mosfet' y detector primera vez
+==================================================================================================
+*/
 
 // MAIN
 void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
-    gps_starting(); // Inicializa el GPS
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    if (cause != ESP_SLEEP_WAKEUP_EXT0) { // me desperte por alguna razon distinta que una interrupcion, como primer encendido
+        // me vuelvo a dormir
+        esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO,WAKEUP_LEVEL);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        esp_deep_sleep_start();
+        return;
+    }
+
+    // si llego hasta aca, fue pq me desperte por interrupcion
+    xTaskCreate(sensar_enviar,"sensar_enviar_task",4096,NULL,5,NULL);
+
+    /*gps_starting(); // Inicializa el GPS
     //init_i2c(); // inicializa el bus I2C para el MPU6050 y el MLX90614
     //mpu6050_init(I2C_NUM_0);
     //lm35_init(); // Inicializa el ADC y el canal para el LM35
@@ -133,5 +189,5 @@ void app_main(void)
         //read_lm35();
         //internal_temp();
         vTaskDelay(pdMS_TO_TICKS(1500));    
-    }
+    }*/
 }
