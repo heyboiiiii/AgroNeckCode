@@ -123,23 +123,23 @@ static void lora_send_packetb(const uint8_t *data, size_t length) {
 }
 
 void transmitir_datos(payload_t *paquete){
-    //payload_t paquete; // creo el paquete
+    //payload_t paquete; // creo el paquete afuera de la funcion
     
     /*
-        // asigno datos, ej:
-    uint16_t id_local = 122;
-    uint8_t  pulsaciones   = 82;
-    float    temp_sensor   = 30.85;
+        // consigo los datos fuera de la funcion, ej:
+    uint16_t id_local = 122; // numero identificatorio individual para cada collar
+    uint8_t  pulsaciones   = 82; // ppm obtenidas mediante el sistema de pulsaciones
+    float    temp_sensor   = 30.85; // promedio o calculo estimado de temperatura interna
     double   gps_latitud   = -42.0690;
-    double   gps_longitud  = -67.6767; // datos simulados
+    double   gps_longitud  = -67.6767; // datos simulados de gps
     */
     
     /*
-        // mapeo y empaqueto
+        // mapeo y empaqueto afuera de la funcion
     paquete.id_collar = id_local;
     paquete.bpm = pulsaciones;
-    paquete.latitud = (uint32_t)(gps_latitud*10000) // un 0 por cada decimal, lo tengo q pasar a numero entero > ej -420690
-    // *etc
+    paquete.latitud = (uint32_t)(gps_latitud*10000) // un 0 por cada decimal, lo tengo q pasar a numero entero : ej -42.0690 > -420690
+    // *etc, despues llamo la funcion enviando el paquete como argumento
     */
     
     lora_send_packetb((uint8_t*)&paquete,sizeof(payload_t)); // envio el paquete, que con este formato son 13 bytes
@@ -163,9 +163,9 @@ void lora_init(void){
     vTaskDelay(pdMS_TO_TICKS(10));
     lora_write_register(0x01, 0x81); // RegOpMode: LoRa + standby
 
-    // Frecuencia 433 MHz (para SX1278)
-    lora_write_register(0x06, 0x6C);
-    lora_write_register(0x07, 0x80);
+    // Frecuencia 915 MHz (para SX1278) > cambiado de 433 a 915, freq de lora en argentina 
+    lora_write_register(0x06, 0xE4);
+    lora_write_register(0x07, 0xC0);
     lora_write_register(0x08, 0x00);
 
     // Potencia de transmisión
