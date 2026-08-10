@@ -127,6 +127,12 @@ esp_err_t mpu6050_enable_wom(i2c_port_t i2c_num, uint8_t threshold_val) {
     return ESP_OK;
 }
 
+//leer int_status, lo que genera un 0 en el pin int
+esp_err_t mpu6050_clear_int(i2c_port_t i2c_num) {
+    uint8_t status;
+    esp_err_t ret = mpu6050_read_bytes(i2c_num, MPU6050_INT_STATUS, &status, 1);
+    return ret;
+}
 
 // MLX90614
 esp_err_t mlx90614_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
