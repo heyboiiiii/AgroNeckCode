@@ -11,8 +11,7 @@
 // Estructuras
 typedef struct {
     uint16_t id_collar;
-    uint8_t bpm;
-    int16_t temperatura;
+    float temperatura;
     int32_t latitud;
     int32_t longitud;
 } __attribute__((packed)) payload_t;
