@@ -9,16 +9,11 @@
 #include "freertos/task.h"
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS NEO-6MV2
 #include "mpumlx.h"    // Librería para el sensor de movimiento MPU6050
 #include "lm35.h"      // Librería para el sensor de temperatura LM35
-
-// SISTEMA DE TEMPERATURA
-#define Vout_LM35       34 // GPIO de Salida del sensor de temperatura LM35
-#define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
-float lm_amb_temp;  // Temperatura ambiente del LM35
-mlx90614_data_t mlx_data; // Temperatura piel del animal
 
 // MODO SLEEP
 #define WAKEUP_GPIO     27 // GPIO que despierta del modo sleep 
@@ -38,8 +33,17 @@ RTC_DATA_ATTR bool estado_mosfet = true; //true = estado inicial, 2+3 y false = 
 RTC_DATA_ATTR uint64_t tiempo_switch = 0;
 
 
+
+// VARIABLES DE DATOS
 // SISTEMA DE POSICION
 double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
+
+// SISTEMA DE TEMPERATURA
+#define Vout_LM35       34 // GPIO de Salida del sensor de temperatura LM35
+#define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
+float lm_amb_temp;  // Temperatura ambiente del LM35
+mlx90614_data_t mlx_data; // Temperatura piel del animal
+float temp_interna; // temperatura final del calculo
 
 // Inicialización de Salida de MOSFETs
 void init_mosfet_gpios() {
@@ -157,7 +161,7 @@ void read_mlx90614() {
 void internal_temp() {
     ESP_LOGI("Temp.Calc","Calculando temperatura interna...");
     // Fórmula: T_interna = T_ambiente + (T_objeto - T_ambiente) * H_COEFICIENTE
-    float temp_interna = lm_amb_temp + (mlx_data.mlx_object_temp - lm_amb_temp) * H_COEFICIENTE;
+    temp_interna = lm_amb_temp + (mlx_data.mlx_object_temp - lm_amb_temp) * H_COEFICIENTE;
     ESP_LOGI("Temp.Calc","Temperatura interna estimada: %.2f °C", temp_interna); 
 }
 
@@ -171,17 +175,19 @@ void sensar_enviar(void *pvParameters){
     init_mosfet_gpios();
 
     // Lectura de sensores
-    read_gps();
-    read_mpu6050();
-    read_mlx90614();
-    read_lm35();
-    internal_temp();
+    read_gps(); // variables latitude , longitude
+    read_mpu6050(); // nada 
+    read_mlx90614(); // no necesito ninguna variable
+    read_lm35(); // no necesito ninguna variable
+    internal_temp(); // uso variable temp_interna
 
-    // payload_t paquete; // creo un paquete
-    // paquete.latitud = (int32_t)(gps_latitud * 10000.0); // cargo los datos, en este caso solo estoy cargando datos gps como ejemplo
-    // paquete.longitud = (int32_t)(gps_longitud * 10000.0);
+    payload_t paquete; // creo un paquete
+    // paquete.id_collar = 0; // falta un modo de configurar el id para cada collar
+    paquete.latitud = (int32_t)(latitude * 1000000.0); // cargo los datos, en este caso solo estoy cargando datos gps como ejemplo
+    paquete.longitud = (int32_t)(longitude * 1000000.0);
+    paquete.temperatura = temp_interna;
 
-    // transmitir_datos(&paquete);
+    transmitir_datos(&paquete);
 
     // Realizo tareas necesarias de MOSFETs
     hora_actual();
