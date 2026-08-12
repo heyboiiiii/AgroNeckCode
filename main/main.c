@@ -1,5 +1,6 @@
 // DEPENDENCIAS
 #include <stdio.h>
+#include <sys/time.h>
 #include "esp_log.h"    
 #include "esp_sleep.h"
 #include "esp_adc/adc_oneshot.h" 
@@ -7,7 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdbool.h>
-
+#include <stdint.h>
 #include "lora.h"       // Librería para el módulo LoRa
 #include "neo6m.h"      // Librería para el módulo GPS NEO-6MV2
 #include "mpumlx.h"    // Librería para el sensor de movimiento MPU6050
@@ -31,9 +32,11 @@ mlx90614_data_t mlx_data; // Temperatura piel del animal
 // Mascara de manejo de los 4 pines
 #define GPIO_MOSFET_MASK ((1ULL<<MOSFET1) | (1ULL<<MOSFET2) | (1ULL<<MOSFET3) | (1ULL<<MOSFET4))
 // Variable que guarda el estado de mosfets aun en Deep Sleep
-RTC_DATA_ATTR bool estado_mosfet = true; 
-// true = estado inicial, 2+3
-// false = estado secundario, 1+4
+RTC_DATA_ATTR bool estado_mosfet = true; //true = estado inicial, 2+3 y false = estado secundario, 1+4
+// Conmutación de baterías
+#define TIEMPO_CAMBIO_BATS 86400ULL // Constante que expresa 24hs en microsegs
+RTC_DATA_ATTR uint64_t tiempo_switch = 0;
+
 
 // SISTEMA DE POSICION
 double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
@@ -52,19 +55,45 @@ void init_mosfet_gpios() {
     gpio_config(&io_config);
 }
 
+// Declara los estados de los MOSFETs
+void aplica_estado_mosfet() {
+    if (estado_mosfet) { // Estado inicial: 2+3
+        gpio_set_level(MOSFET1, 0);
+        gpio_set_level(MOSFET4, 0);
+        gpio_set_level(MOSFET2, 1);
+        gpio_set_level(MOSFET3, 1);
+    } else { // Estado secundario: 1+4
+        gpio_set_level(MOSFET2, 0);
+        gpio_set_level(MOSFET3, 0);
+        gpio_set_level(MOSFET1, 1);
+        gpio_set_level(MOSFET4, 1);
+    }
+}
+
 // Switcheo de MOSFETs (alternar entre baterías)
 void switch_mosfet() {
-    estado_mosfet = !estado_mosfet; // invierto estado de los mosfets
-    if (estado_mosfet) { // estado inicial
-        gpio_set_level(MOSFET1,0); // desactivo 1+4
-        gpio_set_level(MOSFET4,0);
-        gpio_set_level(MOSFET2,1); // prendo 2+3
-        gpio_set_level(MOSFET3,1);
-    } else { // estado secundario
-        gpio_set_level(MOSFET2,0); // desactivo 2+3
-        gpio_set_level(MOSFET3,0);
-        gpio_set_level(MOSFET1,1); // prendo 1+4
-        gpio_set_level(MOSFET4,1);
+    estado_mosfet = !estado_mosfet; 
+    aplica_estado_mosfet();
+}
+
+
+void hora_actual() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t tiempo_actual = (uint64_t)tv.tv_sec;
+
+    if (tiempo_switch == 0) {
+        tiempo_switch = tiempo_actual;
+        aplica_estado_mosfet();
+        return;
+    }
+
+    if ((tiempo_actual - tiempo_switch) >= TIEMPO_CAMBIO_BATS) {
+        switch_mosfet();
+        tiempo_switch = tiempo_actual;
+    }
+     else {
+        aplica_estado_mosfet();
     }
 }
 
@@ -154,14 +183,15 @@ void sensar_enviar(void *pvParameters){
 
     // transmitir_datos(&paquete);
 
-    // Limpia el pin de INT previo al Deep Sleep
-    mpu6050_clear_int(I2C_NUM_0); 
-
-    // Congelo los MOSFETs previo al Deep Sleep
+    // Realizo tareas necesarias de MOSFETs
+    hora_actual();
     gpio_hold_en(MOSFET1);
     gpio_hold_en(MOSFET2);
     gpio_hold_en(MOSFET3);
     gpio_hold_en(MOSFET4);
+
+    // Limpia el pin de INT previo al Deep Sleep
+    mpu6050_clear_int(I2C_NUM_0); 
 
     // Interrupción de despertado
     esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO,WAKEUP_LEVEL);
@@ -187,6 +217,14 @@ void app_main(void)
         mpu6050_enable_wom(I2C_NUM_0, MPU6050_THRESHOLD); 
         mpu6050_clear_int(I2C_NUM_0); // No necesario, pero para evitar problemas
 
+        //Configuro MOSFETs antes de entrar en Deep Sleep
+        init_mosfet_gpios();
+        aplica_estado_mosfet();
+        gpio_hold_en(MOSFET1);
+        gpio_hold_en(MOSFET2);
+        gpio_hold_en(MOSFET3);
+        gpio_hold_en(MOSFET4);
+        
         //Configuración de GPIO que despierte a la ESP32
         esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO, WAKEUP_LEVEL); 
 
