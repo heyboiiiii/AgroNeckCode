@@ -33,7 +33,6 @@ RTC_DATA_ATTR bool estado_mosfet = true; //true = estado inicial, 2+3 y false = 
 RTC_DATA_ATTR uint64_t tiempo_switch = 0;
 
 
-
 // VARIABLES DE DATOS
 // SISTEMA DE POSICION
 double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; float velocidad;
@@ -61,6 +60,7 @@ void init_mosfet_gpios() {
 
 // Declara los estados de los MOSFETs
 void aplica_estado_mosfet() {
+    ESP_LOGI("MOSFETS","Aplicando estado %d...",estado_mosfet);
     if (estado_mosfet) { // Estado inicial: 2+3
         gpio_set_level(MOSFET1, 0);
         gpio_set_level(MOSFET4, 0);
@@ -76,6 +76,7 @@ void aplica_estado_mosfet() {
 
 // Switcheo de MOSFETs (alternar entre baterías)
 void switch_mosfet() {
+    ESP_LOGI("MOSFETS","Switcheando mosfets...");
     estado_mosfet = !estado_mosfet; 
     aplica_estado_mosfet();
 }
@@ -168,12 +169,14 @@ void internal_temp() {
 // Inicialización, Lectura y Procesamiento de Datos al despertar
 void sensar_enviar(void *pvParameters){ 
     // Inicialización de buses y perifericos
+    ESP_LOGI("func_sensar_enviar","Iniciando buses y perifericos.");
     gps_starting();
     init_i2c();
     mpu6050_init(I2C_NUM_0);
     lm35_init();
     init_mosfet_gpios();
 
+    ESP_LOGI("func_sensar_enviar","Leyendo todos los sensores...");
     // Lectura de sensores
     read_gps(); // variables latitude , longitude
     read_mpu6050(); // nada 
@@ -181,6 +184,7 @@ void sensar_enviar(void *pvParameters){
     read_lm35(); // no necesito ninguna variable
     internal_temp(); // uso variable temp_interna
 
+    ESP_LOGI("func_sensar_enviar","Empaquetando y enviando...");
     payload_t paquete; // creo un paquete
     // paquete.id_collar = 0; // falta un modo de configurar el id para cada collar
     paquete.latitud = (int32_t)(latitude * 1000000.0); // cargo los datos, en este caso solo estoy cargando datos gps como ejemplo
@@ -190,6 +194,7 @@ void sensar_enviar(void *pvParameters){
     transmitir_datos(&paquete);
 
     // Realizo tareas necesarias de MOSFETs
+    ESP_LOGI("func_sensar_enviar","Congelando MOSFETs...");
     hora_actual();
     gpio_hold_en(MOSFET1);
     gpio_hold_en(MOSFET2);
@@ -197,11 +202,14 @@ void sensar_enviar(void *pvParameters){
     gpio_hold_en(MOSFET4);
 
     // Limpia el pin de INT previo al Deep Sleep
+    ESP_LOGI("func_sensar_enviar","Limpiando INT MPU.");
     mpu6050_clear_int(I2C_NUM_0); 
 
+    ESP_LOGI("func_sensar_enviar","Preparando interrupción antes de ir a dormir...");
     // Interrupción de despertado
     esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO,WAKEUP_LEVEL);
 
+    ESP_LOGI("func_sensar_enviar","Entrando en deep sleep...");
     vTaskDelay(pdMS_TO_TICKS(100));
 
     // Entra en estado Deep Sleep
@@ -216,13 +224,15 @@ void app_main(void)
     ESP_LOGI("MAIN","Comenzando los procesos principales");
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
     // Despierto por razones que no son Wake-On-Motion de MPU6050
-    if (cause != ESP_SLEEP_WAKEUP_EXT0) {
+    if (cause != ESP_SLEEP_WAKEUP_EXT0) { // MAIN_fwu = main first wake up
         //Inicialización Necesaria para activar el WOM 
+        ESP_LOGI("MAIN_fwu","Primer arranque, inicializando buses.");
         init_i2c(); 
         mpu6050_init(I2C_NUM_0);
         mpu6050_enable_wom(I2C_NUM_0, MPU6050_THRESHOLD); 
         mpu6050_clear_int(I2C_NUM_0); // No necesario, pero para evitar problemas
 
+        ESP_LOGI("MAIN_fwu","Inicio y congelo los mosfets.");
         //Configuro MOSFETs antes de entrar en Deep Sleep
         init_mosfet_gpios();
         aplica_estado_mosfet();
@@ -232,8 +242,10 @@ void app_main(void)
         gpio_hold_en(MOSFET4);
         
         //Configuración de GPIO que despierte a la ESP32
+        ESP_LOGI("MAIN_fwu","Preparo interrupción.");
         esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO, WAKEUP_LEVEL); 
 
+        ESP_LOGI("MAIN_fwu","Entrando en deep sleep...");
         vTaskDelay(pdMS_TO_TICKS(100));
         
         //Entra en estado Deep Sleep
