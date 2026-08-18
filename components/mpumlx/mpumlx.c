@@ -1,36 +1,44 @@
 #include "mpumlx.h"
 #include "driver/gpio.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 static const char *TAG = "MPUMLX";
+// handles para buses
+static i2c_master_bus_handle_t bus_handle = NULL;
+static i2c_master_dev_handle_t mpu_dev_handle = NULL;
+static i2c_master_dev_handle_t mlx_dev_handle = NULL;
 
 //I2C
 void init_i2c() {
-// 1. Configuración I2C
+// 1. Configuro bus i2c master
     ESP_LOGI(TAG, "Configurando I2C...");
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = MLX_MPU6050_SDA,    // GPIO21 para ESP32 estándar
-        .scl_io_num = MLX_MPU6050_SCL,    // GPIO22 para ESP32 estándar
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_NUM_0,
+        .sda_io_num = MLX_MPU6050_SDA,
+        .scl_io_num = MLX_MPU6050_SCL,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
-    conf.master.clk_speed = 100000; // 100 kHz (inicial) 
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle)); 
 
-    // 2. Inicialización I2C
-    esp_err_t ret = i2c_param_config(I2C_NUM_0, &conf);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error configurando I2C: %s", esp_err_to_name(ret));
-        //return ESP_E;
-    }
+    // inicializo mpu y mlx
+    i2c_device_config_t mpu_dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = MPU6050_I2C_ADDR,
+        .scl_speed_hz = 100000,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mpu_dev_cfg, &mpu_dev_handle));
 
-    ret = i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error instalando driver I2C: %s", esp_err_to_name(ret));
-        //return 0;
-    }
+    i2c_device_config_t mlx_dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = MLX90614_I2C_ADDR,
+        .scl_speed_hz = 100000,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
 }
 
 
@@ -139,13 +147,13 @@ esp_err_t mlx90614_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data
     return i2c_master_write_to_device(i2c_num, MLX90614_I2C_ADDR, write_buf, sizeof(write_buf), 100);
 }
 
-esp_err_t mlx90614_read_bytes(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t *data, size_t len) {
-    return i2c_master_write_read_device(i2c_num, MLX90614_I2C_ADDR, &reg_addr, 1, data, len, 100);
+esp_err_t mlx90614_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len) {
+    return i2c_master_transmit_receive(mlx_dev_handle, &reg_addr, 1, data, len, 100);
 }
 
 esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
     uint8_t buffer[3];
-    esp_err_t ret = mlx90614_read_bytes(i2c_num, 0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
+    esp_err_t ret = mlx90614_read_bytes(0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Error leyendo temperatura de la superficie: %s", esp_err_to_name(ret));
         return ret;
