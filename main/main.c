@@ -222,6 +222,12 @@ void sensar_enviar(void *pvParameters){
 void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
+    init_i2c();
+    while (1){
+        read_mlx90614();
+        vTaskDelay(5000);
+    };
+    /*
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
     // Despierto por razones que no son Wake-On-Motion de MPU6050
     if (cause != ESP_SLEEP_WAKEUP_EXT0) { // MAIN_fwu = main first wake up
@@ -252,7 +258,7 @@ void app_main(void)
         esp_deep_sleep_start(); 
         return;
     }
-
+    */
     // Despierto de Deep Sleep por Wake-On-Motion de MPU6050
-    xTaskCreate(sensar_enviar,"sensar_enviar_task",4096,NULL,5,NULL);    
+   // xTaskCreate(sensar_enviar,"sensar_enviar_task",4096,NULL,5,NULL);    
 }
