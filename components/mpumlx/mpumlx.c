@@ -25,17 +25,17 @@ void init_i2c() {
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle)); 
 
     // inicializo mpu y mlx
-    i2c_device_config_t mpu_dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = MPU6050_I2C_ADDR,
-        .scl_speed_hz = 100000,
-    };
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mpu_dev_cfg, &mpu_dev_handle));
+    // i2c_device_config_t mpu_dev_cfg = {
+    //     .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+    //     .device_address = MPU6050_I2C_ADDR,
+    //     .scl_speed_hz = 100000,
+    // };
+    // ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mpu_dev_cfg, &mpu_dev_handle));
 
     i2c_device_config_t mlx_dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = MLX90614_I2C_ADDR,
-        .scl_speed_hz = 100000,
+        .scl_speed_hz = 50000,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
 }
@@ -146,7 +146,7 @@ esp_err_t mlx90614_write_byte(uint8_t reg_addr, uint8_t data) {
 }
 
 esp_err_t mlx90614_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len) {
-    return i2c_master_transmit_receive(mlx_dev_handle, &reg_addr, 1, data, len, 100);
+    return i2c_master_transmit_receive(mlx_dev_handle, &reg_addr, 1, data, len, 1000 / portTICK_PERIOD_MS);
 }
 
 esp_err_t mlx90614_read(mlx90614_data_t *data) {
