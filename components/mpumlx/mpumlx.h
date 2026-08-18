@@ -24,7 +24,7 @@
 #define MPU6050_INT_STATUS       0x3A
 
 // Sensibilidad media de detección
-#define MPU6050_THRESHOLD 20
+#define MPU6050_THRESHOLD 12
 
 // Estructuras
 typedef struct {
