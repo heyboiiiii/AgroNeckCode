@@ -144,7 +144,7 @@ void read_mpu6050() {
 // Lectura de Temperatura MLX90614
 void read_mlx90614() {
     ESP_LOGI("MLX90614","Intentando leer MLX90614...");
-    esp_err_t ret = mlx90614_read(&mlx_data, I2C_NUM_0);
+    esp_err_t ret = mlx90614_read(&mlx_data);
     if (ret == ESP_OK) {
         ESP_LOGI("MLX90614","Temperatura objeto: %.2f °C", mlx_data.mlx_object_temp);
     } else {

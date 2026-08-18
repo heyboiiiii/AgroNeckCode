@@ -151,7 +151,7 @@ esp_err_t mlx90614_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len) {
     return i2c_master_transmit_receive(mlx_dev_handle, &reg_addr, 1, data, len, 100);
 }
 
-esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
+esp_err_t mlx90614_read(mlx90614_data_t *data) {
     uint8_t buffer[3];
     esp_err_t ret = mlx90614_read_bytes(0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
     if (ret != ESP_OK) {
