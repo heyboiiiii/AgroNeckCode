@@ -40,7 +40,7 @@ void init_i2c() {
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
 }
 
-
+/*
 // MPU6050
 esp_err_t mpu6050_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
     uint8_t write_buf[2] = {reg_addr, data};
@@ -102,16 +102,15 @@ esp_err_t mpu6050_read(mpu6050_data_t *data, i2c_port_t i2c_num) {
     return ESP_OK;
 }
 
-/*
-    Wake-On-Motion de MPU-6050
-        MPU6050_ACCEL_CONFIG: Configura el DHPS (Digital High Pass Filter).
-        MPU6050_MOT_THR: Umbral mínimo para activarse por WOM.
-        MPU6050_MOT_DUR: Duración necesaria del umbral.
-        MPU6050_INT_PIN_CFG: Se configura el latch hasta finalizar la interrupción.
-        MPU6050_INT_ENABLE: Permite enviar un HIGH al INT en caso de activarse por Motion.
-        MPU6050_PWR_MGMT_1_REG: Utiliza los pines SLEEP, CYCLE y TEMP_DIS para configurar el modo Only Low Power.
-        MPU6050_PWR_MGMT_2_REG: Similar al 1, activa STBY_XG, STBY_YG y STBY_ZG para configurar el modo Only Low Power.
-*/ 
+
+    // Wake-On-Motion de MPU-6050
+    //     MPU6050_ACCEL_CONFIG: Configura el DHPS (Digital High Pass Filter).
+    //     MPU6050_MOT_THR: Umbral mínimo para activarse por WOM.
+    //     MPU6050_MOT_DUR: Duración necesaria del umbral.
+    //     MPU6050_INT_PIN_CFG: Se configura el latch hasta finalizar la interrupción.
+    //     MPU6050_INT_ENABLE: Permite enviar un HIGH al INT en caso de activarse por Motion.
+    //     MPU6050_PWR_MGMT_1_REG: Utiliza los pines SLEEP, CYCLE y TEMP_DIS para configurar el modo Only Low Power.
+    //     MPU6050_PWR_MGMT_2_REG: Similar al 1, activa STBY_XG, STBY_YG y STBY_ZG para configurar el modo Only Low Power.
 
 esp_err_t mpu6050_enable_wom(i2c_port_t i2c_num, uint8_t threshold_val) {
     esp_err_t ret;
@@ -139,7 +138,7 @@ esp_err_t mpu6050_clear_int(i2c_port_t i2c_num) {
     esp_err_t ret = mpu6050_read_bytes(i2c_num, MPU6050_INT_STATUS, &status, 1);
     return ret;
 }
-
+*/
 // MLX90614
 esp_err_t mlx90614_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
     uint8_t write_buf[2] = {reg_addr, data};
