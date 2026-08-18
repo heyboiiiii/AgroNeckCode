@@ -140,7 +140,7 @@ esp_err_t mpu6050_clear_int(i2c_port_t i2c_num) {
 }
 */
 // MLX90614
-esp_err_t mlx90614_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
+esp_err_t mlx90614_write_byte(uint8_t reg_addr, uint8_t data) {
     uint8_t write_buf[2] = {reg_addr, data};
     return i2c_master_transmit(mlx_dev_handle, write_buf, sizeof(write_buf), 100);
 }
