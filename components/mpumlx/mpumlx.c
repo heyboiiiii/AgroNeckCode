@@ -23,6 +23,7 @@ void init_i2c() {
         .flags.enable_internal_pullup = true,
     };
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle)); 
+    
 
     // inicializo mpu y mlx
     // i2c_device_config_t mpu_dev_cfg = {
@@ -38,6 +39,15 @@ void init_i2c() {
         .scl_speed_hz = 50000,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
+    ESP_LOGI(TAG, "I2C MLX configurado");
+
+    esp_err_t ret = i2c_master_probe(bus_handle, 0x5A, 1000);
+
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "MLX90614 encontrado en 0x5A");
+    } else {
+        ESP_LOGE(TAG, "MLX90614 NO encontrado: %s", esp_err_to_name(ret));
+    }
 }
 
 /*
