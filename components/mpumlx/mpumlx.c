@@ -41,6 +41,22 @@ void init_i2c() {
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
     ESP_LOGI(TAG, "I2C MLX configurado");
 
+    // escaneo todas las direcciones
+    uint8_t addr;
+
+    ESP_LOGI(TAG, "Escaneando bus I2C...");
+
+    for (addr = 1; addr < 127; addr++) {
+        esp_err_t ret = i2c_master_probe(bus_handle, addr, 100);
+
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "Dispositivo encontrado en 0x%02X", addr);
+        }
+    }
+
+    ESP_LOGI(TAG, "Fin del escaneo");
+
+    // escaneo especificamente la direccion i2c
     esp_err_t ret = i2c_master_probe(bus_handle, 0x5A, 1000);
 
     if (ret == ESP_OK) {
