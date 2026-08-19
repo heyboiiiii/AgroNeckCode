@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 #include "esp_err.h"
  
 // Pines MPU/MLX
@@ -47,5 +47,4 @@ esp_err_t mpu6050_init(i2c_port_t i2c_num); // una vez funcional con los dos com
 esp_err_t mpu6050_read(mpu6050_data_t *data, i2c_port_t i2c_num);
 esp_err_t mpu6050_enable_wom(i2c_port_t i2c_num, uint8_t threshold_val); // funcion para activar el modo Wake-On-Motion
 esp_err_t mpu6050_clear_int(i2c_port_t i2c_num); // funcion para limpiar el pin INT del MPU6050
-esp_err_t mlx90614_read(mlx90614_data_t *data);
-
+esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num);

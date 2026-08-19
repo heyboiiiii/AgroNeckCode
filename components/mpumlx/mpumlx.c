@@ -5,68 +5,35 @@
 #include "freertos/task.h"
 
 static const char *TAG = "MPUMLX";
-// handles para buses
-static i2c_master_bus_handle_t bus_handle = NULL;
-static i2c_master_dev_handle_t mpu_dev_handle = NULL;
-static i2c_master_dev_handle_t mlx_dev_handle = NULL;
 
 //I2C
 void init_i2c() {
-// 1. Configuro bus i2c master
+// 1. Configuración I2C
     ESP_LOGI(TAG, "Configurando I2C...");
-    i2c_master_bus_config_t bus_config = {
-        .i2c_port = I2C_NUM_0,
-        .sda_io_num = MLX_MPU6050_SDA,
-        .scl_io_num = MLX_MPU6050_SCL,
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = MLX_MPU6050_SDA,    // GPIO21 para ESP32 estándar
+        .scl_io_num = MLX_MPU6050_SCL,    // GPIO22 para ESP32 estándar
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     };
-    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle)); 
-    
+    conf.master.clk_speed = 100000; // 100 kHz (inicial) 
 
-    // inicializo mpu y mlx
-    // i2c_device_config_t mpu_dev_cfg = {
-    //     .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-    //     .device_address = MPU6050_I2C_ADDR,
-    //     .scl_speed_hz = 100000,
-    // };
-    // ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mpu_dev_cfg, &mpu_dev_handle));
-
-    i2c_device_config_t mlx_dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = MLX90614_I2C_ADDR,
-        .scl_speed_hz = 50000,
-    };
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &mlx_dev_cfg, &mlx_dev_handle));
-    ESP_LOGI(TAG, "I2C MLX configurado");
-
-    // escaneo todas las direcciones
-    uint8_t addr;
-
-    ESP_LOGI(TAG, "Escaneando bus I2C...");
-
-    for (addr = 1; addr < 127; addr++) {
-        esp_err_t ret = i2c_master_probe(bus_handle, addr, 100);
-
-        if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "Dispositivo encontrado en 0x%02X", addr);
-        }
+    // 2. Inicialización I2C
+    esp_err_t ret = i2c_param_config(I2C_NUM_0, &conf);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Error configurando I2C: %s", esp_err_to_name(ret));
+        //return ESP_E;
     }
 
-    ESP_LOGI(TAG, "Fin del escaneo");
-
-    // escaneo especificamente la direccion i2c
-    esp_err_t ret = i2c_master_probe(bus_handle, 0x5A, 1000);
-
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "MLX90614 encontrado en 0x5A");
-    } else {
-        ESP_LOGE(TAG, "MLX90614 NO encontrado: %s", esp_err_to_name(ret));
+    ret = i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Error instalando driver I2C: %s", esp_err_to_name(ret));
+        //return 0;
     }
 }
 
-/*
+
 // MPU6050
 esp_err_t mpu6050_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
     uint8_t write_buf[2] = {reg_addr, data};
@@ -128,15 +95,16 @@ esp_err_t mpu6050_read(mpu6050_data_t *data, i2c_port_t i2c_num) {
     return ESP_OK;
 }
 
-
-    // Wake-On-Motion de MPU-6050
-    //     MPU6050_ACCEL_CONFIG: Configura el DHPS (Digital High Pass Filter).
-    //     MPU6050_MOT_THR: Umbral mínimo para activarse por WOM.
-    //     MPU6050_MOT_DUR: Duración necesaria del umbral.
-    //     MPU6050_INT_PIN_CFG: Se configura el latch hasta finalizar la interrupción.
-    //     MPU6050_INT_ENABLE: Permite enviar un HIGH al INT en caso de activarse por Motion.
-    //     MPU6050_PWR_MGMT_1_REG: Utiliza los pines SLEEP, CYCLE y TEMP_DIS para configurar el modo Only Low Power.
-    //     MPU6050_PWR_MGMT_2_REG: Similar al 1, activa STBY_XG, STBY_YG y STBY_ZG para configurar el modo Only Low Power.
+/*
+    Wake-On-Motion de MPU-6050
+        MPU6050_ACCEL_CONFIG: Configura el DHPS (Digital High Pass Filter).
+        MPU6050_MOT_THR: Umbral mínimo para activarse por WOM.
+        MPU6050_MOT_DUR: Duración necesaria del umbral.
+        MPU6050_INT_PIN_CFG: Se configura el latch hasta finalizar la interrupción.
+        MPU6050_INT_ENABLE: Permite enviar un HIGH al INT en caso de activarse por Motion.
+        MPU6050_PWR_MGMT_1_REG: Utiliza los pines SLEEP, CYCLE y TEMP_DIS para configurar el modo Only Low Power.
+        MPU6050_PWR_MGMT_2_REG: Similar al 1, activa STBY_XG, STBY_YG y STBY_ZG para configurar el modo Only Low Power.
+*/ 
 
 esp_err_t mpu6050_enable_wom(i2c_port_t i2c_num, uint8_t threshold_val) {
     esp_err_t ret;
@@ -164,20 +132,20 @@ esp_err_t mpu6050_clear_int(i2c_port_t i2c_num) {
     esp_err_t ret = mpu6050_read_bytes(i2c_num, MPU6050_INT_STATUS, &status, 1);
     return ret;
 }
-*/
+
 // MLX90614
-esp_err_t mlx90614_write_byte(uint8_t reg_addr, uint8_t data) {
+esp_err_t mlx90614_write_byte(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t data) {
     uint8_t write_buf[2] = {reg_addr, data};
-    return i2c_master_transmit(mlx_dev_handle, write_buf, sizeof(write_buf), 100);
+    return i2c_master_write_to_device(i2c_num, MLX90614_I2C_ADDR, write_buf, sizeof(write_buf), 100);
 }
 
-esp_err_t mlx90614_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len) {
-    return i2c_master_transmit_receive(mlx_dev_handle, &reg_addr, 1, data, len, 1000 / portTICK_PERIOD_MS);
+esp_err_t mlx90614_read_bytes(i2c_port_t i2c_num, uint8_t reg_addr, uint8_t *data, size_t len) {
+    return i2c_master_write_read_device(i2c_num, MLX90614_I2C_ADDR, &reg_addr, 1, data, len, 100);
 }
 
-esp_err_t mlx90614_read(mlx90614_data_t *data) {
+esp_err_t mlx90614_read(mlx90614_data_t *data, i2c_port_t i2c_num) {
     uint8_t buffer[3];
-    esp_err_t ret = mlx90614_read_bytes(0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
+    esp_err_t ret = mlx90614_read_bytes(i2c_num, 0x07, buffer, 3); // Leer temperatura  (0x07 = objeto | 0x06 = ambiente)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Error leyendo temperatura de la superficie: %s", esp_err_to_name(ret));
         return ret;
@@ -185,12 +153,12 @@ esp_err_t mlx90614_read(mlx90614_data_t *data) {
     uint16_t temp_sup_raw = (buffer[1] << 8) | buffer[0];
     data->mlx_object_temp = (temp_sup_raw * 0.02) - 273.15; // Convertir a grados Celsius
 
-    /*esp_err_t ret2 = mlx90614_read_bytes(i2c_num, 0x06, buffer, 3); // Leer temperatura ambiente
+    esp_err_t ret2 = mlx90614_read_bytes(i2c_num, 0x06, buffer, 3); // Leer temperatura ambiente
     if (ret2 != ESP_OK) {
         ESP_LOGE(TAG, "Error leyendo temperatura ambiente: %s", esp_err_to_name(ret2));
         return ret2;
     }
     uint16_t temp_amb_raw = (buffer[1] << 8) | buffer[0];
-    data->mlx_amb_temp = (temp_amb_raw * 0.02) - 273.15; // Convertir a grados Celsius*/
+    data->mlx_amb_temp = (temp_amb_raw * 0.02) - 273.15; // Convertir a grados Celsius
     return ESP_OK;
 }
