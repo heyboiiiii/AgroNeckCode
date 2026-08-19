@@ -22,7 +22,8 @@ Código del AgroNeck para la ESP32. Incluye librerías para:
 
 - Comunicacion LoRA. -> SPI(Revisar codigo de la libreria y probar con RX).
   
-- Programar Interrupciones en el MPU6050 para activar la TX de datos solo cuando se detecte movimiento del animal. (software realizado, falta confirmar su funcionamiento)
+- ~~Programar Interrupciones en el MPU6050 para activar la TX de datos solo cuando se detecte movimiento del animal. (software realizado, falta confirmar su funcionamiento)~~
+- El wake on motion del MPU6050 parece funcional, aunque aún debe configurarse mejor. Idealmente, que no se despierte con cada movimiento, idear algún modo (similar a la función hora_actual) para que solo ejecute el programa cada x tiempo 
 
 ## Luego de realizar Pendientes:
 
