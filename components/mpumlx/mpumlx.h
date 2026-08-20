@@ -10,7 +10,7 @@
 
 // Config I2C/REGS
 #define MLX90614_I2C_ADDR        0x5A
-#define MPU6050_I2C_ADDR         0x68
+#define MPU6050_I2C_ADDR         0x69
 #define MPU6050_WHO_AM_I_REG     0x75
 #define MPU6050_PWR_MGMT_1_REG   0x6B
 #define MPU6050_PWR_MGMT_2_REG   0x6C
