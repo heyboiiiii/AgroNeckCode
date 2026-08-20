@@ -144,7 +144,7 @@ void read_mpu6050() {
 // Lectura de Temperatura MLX90614
 void read_mlx90614() {
     ESP_LOGI("MLX90614","Intentando leer MLX90614...");
-    esp_err_t ret = mlx90614_read(&mlx_data);
+    esp_err_t ret = mlx90614_read(&mlx_data, I2C_NUM_0);
     if (ret == ESP_OK) {
         ESP_LOGI("MLX90614","Temperatura objeto: %.2f °C", mlx_data.mlx_object_temp);
     } else {
@@ -222,43 +222,15 @@ void sensar_enviar(void *pvParameters){
 void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
-    init_i2c();
-    while (1){
-        read_mlx90614();
-        vTaskDelay(5000);
-    };
-    /*
-    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-    // Despierto por razones que no son Wake-On-Motion de MPU6050
-    if (cause != ESP_SLEEP_WAKEUP_EXT0) { // MAIN_fwu = main first wake up
-        //Inicialización Necesaria para activar el WOM 
-        ESP_LOGI("MAIN_fwu","Primer arranque, inicializando buses.");
-        init_i2c(); 
-        mpu6050_init(I2C_NUM_0);
-        mpu6050_enable_wom(I2C_NUM_0, MPU6050_THRESHOLD); 
-        mpu6050_clear_int(I2C_NUM_0); // No necesario, pero para evitar problemas
-
-        ESP_LOGI("MAIN_fwu","Inicio y congelo los mosfets.");
-        //Configuro MOSFETs antes de entrar en Deep Sleep
-        init_mosfet_gpios();
-        aplica_estado_mosfet();
-        gpio_hold_en(MOSFET1);
-        gpio_hold_en(MOSFET2);
-        gpio_hold_en(MOSFET3);
-        gpio_hold_en(MOSFET4);
-        
-        //Configuración de GPIO que despierte a la ESP32
-        ESP_LOGI("MAIN_fwu","Preparo interrupción.");
-        esp_sleep_enable_ext0_wakeup(WAKEUP_GPIO, WAKEUP_LEVEL); 
-
-        ESP_LOGI("MAIN_fwu","Entrando en deep sleep...");
-        vTaskDelay(pdMS_TO_TICKS(100));
-        
-        //Entra en estado Deep Sleep
-        esp_deep_sleep_start(); 
-        return;
+    payload_t paquete;
+    paquete.temperatura = 27.43;
+    paquete.id_collar = 172;
+    paquete.latitud = 32088429;
+    paquete.longitud = -57858112;
+    
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        transmitir_datos(&paquete);
+        ESP_LOGI("NIG", "NIGlora haciendo el esfuerzo");
     }
-    */
-    // Despierto de Deep Sleep por Wake-On-Motion de MPU6050
-   // xTaskCreate(sensar_enviar,"sensar_enviar_task",4096,NULL,5,NULL);    
 }
