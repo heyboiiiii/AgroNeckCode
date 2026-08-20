@@ -162,7 +162,7 @@ void read_mlx90614() {
 void internal_temp() {
     ESP_LOGI("Temp.Calc","Calculando temperatura interna...");
     // Fórmula: T_interna = T_ambiente + (T_objeto - T_ambiente) * H_COEFICIENTE
-    temp_interna = lm_amb_temp + (mlx_data.mlx_object_temp - lm_amb_temp) * H_COEFICIENTE;
+    temp_interna = (lm_amb_temp+8) + (mlx_data.mlx_object_temp - (lm_amb_temp+8)) * H_COEFICIENTE;
     ESP_LOGI("Temp.Calc","Temperatura interna estimada: %.2f °C", temp_interna); 
 }
 
