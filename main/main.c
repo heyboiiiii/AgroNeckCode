@@ -29,7 +29,7 @@
 // Variable que guarda el estado de mosfets aun en Deep Sleep
 RTC_DATA_ATTR bool estado_mosfet = true; //true = estado inicial, 2+3 y false = estado secundario, 1+4
 // Conmutación de baterías
-#define TIEMPO_CAMBIO_BATS 10ULL // Constante que expresa 24hs en microsegs
+#define TIEMPO_CAMBIO_BATS 86400ULL // Constante que expresa 24hs en microsegs
 RTC_DATA_ATTR uint64_t tiempo_switch = 0;
 
 
@@ -39,7 +39,7 @@ double latitude; double longitude; char lat_hemisphere; char lon_hemisphere; flo
 
 // SISTEMA DE TEMPERATURA
 #define Vout_LM35       34 // GPIO de Salida del sensor de temperatura LM35
-#define H_COEFICIENTE   1.0f // Constante de acoplamiento térmico para el pelaje (Calibrar)
+#define H_COEFICIENTE   0.18f // Constante de acoplamiento térmico para el pelaje (Calibrar)
 float lm_amb_temp;  // Temperatura ambiente del LM35
 mlx90614_data_t mlx_data; // Temperatura piel del animal
 float temp_interna; // temperatura final del calculo
