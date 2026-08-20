@@ -49,14 +49,15 @@ esp_err_t mpu6050_init(i2c_port_t i2c_num) {
     esp_err_t ret = mpu6050_read_bytes(I2C_NUM_0, MPU6050_WHO_AM_I_REG, &who_am_i, 1);
 
     if (ret == ESP_OK) {
-        // SI ES 0x68 O 0x70, ES CORRECTO
-        if (who_am_i == 0x68 || who_am_i == 0x70) {
-            ESP_LOGI(TAG, "MPU Detectado con exito. WHO_AM_I: 0x%02X", who_am_i);
-        } else {
-            // SOLO ENTRA ACÁ SI LEE OTRO VALOR RARO (Como 0x00 o 0xFF)
-            ESP_LOGE(TAG, "WHO_AM_I incorrecto (Leido: 0x%02X, Esperado: 0x68 o 0x70)", who_am_i);
+        if (who_am_i != MPU6050_I2C_ADDR) {
+            ESP_LOGE(TAG, "WHO_AM_I incorrecto (Leído: 0x%02X, Esperado: 0x%02X)", 
+                    who_am_i, MPU6050_I2C_ADDR);
+            // Diagnóstico adicional
             if (who_am_i == 0x00 || who_am_i == 0xFF) {
-                ESP_LOGE(TAG, "Posible fallo de conexion o alimentacion");
+                ESP_LOGE(TAG, "Posible fallo de conexión o alimentación");
+            } else {
+                ESP_LOGE(TAG, "Posible dirección I2C incorrecta (prueba con 0x%02X)", 
+                        who_am_i);
             }
             return ESP_FAIL;
         }
@@ -64,11 +65,11 @@ esp_err_t mpu6050_init(i2c_port_t i2c_num) {
         ESP_LOGE(TAG, "Fallo al leer WHO_AM_I: %s", esp_err_to_name(ret));
         return ret;
     }
-
-    // Sacar del modo sleep
-    uint8_t cmd[] = { MPU6050_PWR_MGMT_1_REG, 0x00 };
-    ret = i2c_master_write_to_device(i2c_num, MPU6050_I2C_ADDR, cmd, 2, 100);
-    return ret;
+        // Wake up MPU6050
+        uint8_t cmd[] = { MPU6050_PWR_MGMT_1_REG, 0x00 };
+        ret = i2c_master_write_to_device(i2c_num, MPU6050_I2C_ADDR, cmd, 2, 100);
+        return ret;
+ 
 }
 
 esp_err_t mpu6050_read(mpu6050_data_t *data, i2c_port_t i2c_num) {
