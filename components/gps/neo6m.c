@@ -8,8 +8,7 @@
 #include "esp_log.h"    
 #include "freertos/FreeRTOS.h"
 
-#define BUFFER (1024)
-char buf[BUFFER];
+#define BUFFER_SIZE (1024)
 
 static float parse_gprmc_speed(const char *nmea_sentence) {
     if (strstr(nmea_sentence, "$GPRMC") == NULL) return -1;
@@ -53,53 +52,52 @@ void gps_starting()
 {   
     ESP_LOGI("gps_starting", "Iniciando GPS...");
     const uart_port_t uart_num = UART_NUM_1;
+    
     uart_config_t uart_config = {
         .baud_rate = 9600,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
     };
     
-    uart_param_config(uart_num, &uart_config);
-    ESP_ERROR_CHECK(uart_driver_install(uart_num, BUFFER, 0, 0, NULL, 0));
-    ESP_ERROR_CHECK(uart_set_pin(uart_num, NEO6M_RX, NEO6M_TX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(uart_num, NEO6M_TX, NEO6M_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_driver_install(uart_num, BUFFER_SIZE * 2, 0, 0, NULL, 0));
+
     ESP_LOGI("gps_starting","Finalizo la funcion gps_starting");
 }
 
 void raw_nmea(double *latitude, double *longitude,char *lat_hemisphere, char *lon_hemisphere, float *speedKmh)
 {
-    ESP_LOGI("raw_nmea", "Funcion invocada, leyendo bytes del uart.");
-    memset(buf, 0, BUFFER);
-    uart_read_bytes(UART_NUM_1, buf, BUFFER, portMAX_DELAY);
-    //ESP_LOGI(TAG, "Data: %s", buf);
-    ESP_LOGI("raw_nmea", "Termino de leer los bytes del uart, procesando datos.");
-    //data adquisiton latitude and longtitude
-    char lat[12], lon[12];
-    // Declare these new char variables to store 'S', 'W', 'N', or 'E'
-    char lat_h; // Will store 'S' or 'N'
-    char lon_h; // Will store 'W' or 'E'
+    ESP_LOGI("func_raw_nmea","Se intenta leer GPS.");
+    uint8_t buf[BUFFER_SIZE];
     
-    const char *indexGP;
+    int rxBytes = uart_read_bytes(UART_NUM_1, buf, BUFFER_SIZE - 1, pdMS_TO_TICKS(1000));
+    
+    if (rxBytes > 0) {
+        buf[rxBytes] = '\0';
+        ESP_LOGI("raw_nmea", "Bytes recibidos: %d", rxBytes);
 
-    indexGP = strstr(buf, "$GPGGA");
-    
-    if (indexGP != NULL) {
+        char lat[12] = {0}, lon[12] = {0};
+        char lat_h = 0, lon_h = 0;
         
-        sscanf(indexGP, "$GPGGA,%*[^,],%11[^,],%c,%11[^,],%c", lat, &lat_h, lon, &lon_h);
+        const char *indexGP = strstr((char *)buf, "$GPGGA");
+        if (indexGP != NULL) {
+            if (sscanf(indexGP, "$GPGGA,%*[^,],%11[^,],%c,%11[^,],%c", lat, &lat_h, lon, &lon_h) == 4) {
+                *latitude = convert_to_decimal_degrees(atof(lat));
+                *longitude = convert_to_decimal_degrees(atof(lon));
+                *lat_hemisphere = lat_h;
+                *lon_hemisphere = lon_h;
+            }
+        }
 
-        *latitude = convert_to_decimal_degrees(atof(lat));
-        *longitude = convert_to_decimal_degrees(atof(lon));
-
-        *lat_hemisphere = lat_h;
-        *lon_hemisphere = lon_h;
-
-        //ESP_LOGI(TAG,"lat: %lf / %c ^^ lon; %lf / %c",latitude,lat_hemisphere,longitude,lon_hemisphere);       
-    }
-
-    indexGP = strstr(buf, "$GPRMC");
-
-    if(indexGP != NULL){
-        *speedKmh = parse_gprmc_speed(indexGP);
+        indexGP = strstr((char *)buf, "$GPRMC");
+        if (indexGP != NULL) {
+            *speedKmh = parse_gprmc_speed(indexGP);
+        }
+    } else {
+        ESP_LOGW("raw_nmea", "Timeout: No se recibieron datos del UART.");
     }
 }
