@@ -231,7 +231,7 @@ void app_main(void)
 {
     ESP_LOGI("MAIN","Comenzando los procesos principales");
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-    ESP_LOGI("WAKEUPCAUSE","CÓDIGO DE WAKEUP: %d",cause);
+    ESP_LOGI("WAKEUPCAUSE","CÓDIGO DE WAKEUP: %d",cause); // https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_hw_support/include/esp_sleep.h
 
     // Despierto por razones que no son Wake-On-Motion (Primer arranque / Reset)
     if (cause != ESP_SLEEP_WAKEUP_EXT0) { 
